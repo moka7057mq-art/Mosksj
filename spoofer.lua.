@@ -1,0 +1,116 @@
+-- Roblox Device Spoofer GUI with Auto-Rejoin
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+
+-- Prevent duplicate UI
+if CoreGui:FindFirstChild("GreenCircleSpoofer") then
+    CoreGui:FindFirstChild("GreenCircleSpoofer"):Destroy()
+end
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GreenCircleSpoofer"
+ScreenGui.Parent = CoreGui
+
+-- Create Main Green Circle Button
+local GreenButton = Instance.new("TextButton")
+GreenButton.Size = UDim2.new(0, 70, 0, 70)
+GreenButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+GreenButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+GreenButton.Text = ""
+GreenButton.Parent = ScreenGui
+
+-- Make it a perfect circle
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = GreenButton
+
+-- Create Menu Frame (Hidden by default)
+local MenuFrame = Instance.new("Frame")
+MenuFrame.Size = UDim2.new(0, 250, 0, 150)
+MenuFrame.Position = UDim2.new(0.35, 0, 0.35, 0)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MenuFrame.Visible = false
+MenuFrame.Parent = ScreenGui
+
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 10)
+FrameCorner.Parent = MenuFrame
+
+-- PC Selection Button
+local PCButton = Instance.new("TextButton")
+PCButton.Size = UDim2.new(0, 200, 0, 40)
+PCButton.Position = UDim2.new(0, 25, 0, 25)
+PCButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+PCButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+PCButton.Text = "Spoof as PC & Rejoin"
+PCButton.Font = Enum.Font.SourceSansBold
+PCButton.TextSize = 18
+PCButton.Parent = MenuFrame
+
+-- Console Selection Button
+local ConsoleButton = Instance.new("TextButton")
+ConsoleButton.Size = UDim2.new(0, 200, 0, 40)
+ConsoleButton.Position = UDim2.new(0, 25, 0, 85)
+ConsoleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ConsoleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConsoleButton.Text = "Spoof as Console & Rejoin"
+ConsoleButton.Font = Enum.Font.SourceSansBold
+ConsoleButton.TextSize = 18
+ConsoleButton.Parent = MenuFrame
+
+-- Function to Rejoin the same server
+local function RejoinServer()
+    if #Players:GetPlayers() <= 1 then
+        TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
+    else
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
+    end
+end
+
+-- Open menu when clicking the green circle
+GreenButton.MouseButton1Click:Connect(function()
+    MenuFrame.Visible = not MenuFrame.Visible
+end)
+
+-- PC Button Click Action
+PCButton.MouseButton1Click:Connect(function()
+    -- Set to PC Simulation via Hooking
+    if hookmetamethod then
+        local oldIndex
+        oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, idx)
+            if self == UserInputService then
+                if idx == "TouchEnabled" then return false
+                elseif idx == "KeyboardEnabled" then return true
+                elseif idx == "MouseEnabled" then return true
+                end
+            end
+            return oldIndex(self, idx)
+        end))
+    end
+    wait(0.5)
+    RejoinServer()
+end)
+
+-- Console Button Click Action
+ConsoleButton.MouseButton1Click:Connect(function()
+    -- Set to Console Simulation via Hooking
+    if hookmetamethod then
+        local oldIndex
+        oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, idx)
+            if self == UserInputService then
+                if idx == "TouchEnabled" then return false
+                elseif idx == "GamepadEnabled" then return true
+                end
+            elseif self == GuiService and idx == "IsPlatformConsole" then
+                return true
+            end
+            return oldIndex(self, idx)
+        end))
+    end
+    wait(0.5)
+    RejoinServer()
+end)
