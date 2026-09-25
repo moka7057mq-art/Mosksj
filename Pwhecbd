@@ -1,0 +1,248 @@
+-- Advanced Time Bomb AI (Classic, Orbit & Track with Dynamic Stud Customization 1-12)
+-- Purpose: Open-source educational AI bot with free-text stud distance configuration.
+
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local BotSettings = {
+    Enabled = false,
+    BombCatchSeconds = 2,
+    PlayStyle = "Track", 
+    TargetRange = 150,
+    OrbitDistance = 6
+}
+
+local orbitAngle = 0
+
+if PlayerGui:FindFirstChild("TimeBombGui") then
+    PlayerGui.TimeBombGui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TimeBombGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 280)
+MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "Time Bomb AI Panel"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 180, 0, 40)
+ToggleButton.Position = UDim2.new(0, 20, 0, 50)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleButton.Text = "AUTO: OFF"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Parent = MainFrame
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 6)
+BtnCorner.Parent = ToggleButton
+
+local TimeButton = Instance.new("TextButton")
+TimeButton.Size = UDim2.new(0, 180, 0, 40)
+TimeButton.Position = UDim2.new(0, 20, 0, 105)
+TimeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+TimeButton.Text = "Pass Time: 2 Seconds"
+TimeButton.TextColor3 = Color3.fromRGB(240, 240, 240)
+TimeButton.TextSize = 14
+TimeButton.Font = Enum.Font.SourceSans
+TimeButton.Parent = MainFrame
+
+local TimeCorner = Instance.new("UICorner")
+TimeCorner.CornerRadius = UDim.new(0, 6)
+TimeCorner.Parent = TimeButton
+
+local StyleButton = Instance.new("TextButton")
+StyleButton.Size = UDim2.new(0, 180, 0, 40)
+StyleButton.Position = UDim2.new(0, 20, 0, 160)
+StyleButton.BackgroundColor3 = Color3.fromRGB(45, 60, 85)
+StyleButton.Text = "Style: TRACK (Follow)"
+StyleButton.TextColor3 = Color3.fromRGB(240, 240, 240)
+StyleButton.TextSize = 14
+StyleButton.Font = Enum.Font.SourceSansBold
+StyleButton.Parent = MainFrame
+
+local StyleCorner = Instance.new("UICorner")
+StyleCorner.CornerRadius = UDim.new(0, 6)
+StyleCorner.Parent = StyleButton
+
+local DistanceLabel = Instance.new("TextLabel")
+DistanceLabel.Size = UDim2.new(0, 110, 0, 40)
+DistanceLabel.Position = UDim2.new(0, 20, 0, 215)
+DistanceLabel.BackgroundTransparency = 1
+DistanceLabel.Text = "Orbit Studs (1-12):"
+DistanceLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+DistanceLabel.TextSize = 13
+DistanceLabel.Font = Enum.Font.SourceSans
+DistanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+DistanceLabel.Parent = MainFrame
+
+local DistanceInput = Instance.new("TextBox")
+DistanceInput.Size = UDim2.new(0, 60, 0, 35)
+DistanceInput.Position = UDim2.new(0, 140, 0, 217)
+DistanceInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+DistanceInput.Text = tostring(BotSettings.OrbitDistance)
+DistanceInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+DistanceInput.TextSize = 14
+DistanceInput.Font = Enum.Font.SourceSansBold
+DistanceInput.ClearTextOnFocus = false
+DistanceInput.Parent = MainFrame
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 4)
+InputCorner.Parent = DistanceInput
+
+ToggleButton.MouseButton1Click:Connect(function()
+    BotSettings.Enabled = not BotSettings.Enabled
+    if BotSettings.Enabled then
+        ToggleButton.Text = "AUTO: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 160, 80)
+    else
+        ToggleButton.Text = "AUTO: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    end
+end)
+
+TimeButton.MouseButton1Click:Connect(function()
+    if BotSettings.BombCatchSeconds == 2 then
+        BotSettings.BombCatchSeconds = 3
+        TimeButton.Text = "Pass Time: 3 Seconds"
+    else
+        BotSettings.BombCatchSeconds = 2
+        TimeButton.Text = "Pass Time: 2 Seconds"
+    end
+end)
+
+StyleButton.MouseButton1Click:Connect(function()
+    if BotSettings.PlayStyle == "Track" then
+        BotSettings.PlayStyle = "Orbit"
+        StyleButton.Text = "Style: ORBIT (Dodge & Spin)"
+        StyleButton.BackgroundColor3 = Color3.fromRGB(210, 105, 30)
+    else
+        BotSettings.PlayStyle = "Track"
+        StyleButton.Text = "Style: TRACK (Follow)"
+        StyleButton.BackgroundColor3 = Color3.fromRGB(45, 60, 85)
+    end
+end)
+
+DistanceInput.FocusLost:Connect(function(enterPressed)
+    local enteredValue = tonumber(DistanceInput.Text)
+    if enteredValue then
+        local clampedValue = math.clamp(enteredValue, 1, 12)
+        BotSettings.OrbitDistance = clampedValue
+        DistanceInput.Text = tostring(clampedValue)
+        print("Orbit distance updated dynamically to: " .. tostring(clampedValue) .. " studs")
+    else
+        DistanceInput.Text = tostring(BotSettings.OrbitDistance)
+    end
+end)
+
+local function getClosestOpponent()
+    local Character = LocalPlayer.Character
+    if not Character or not Character:FindFirstChild("HumanoidRootPart") then return nil end
+    local closestPlayer = nil
+    local shortestDistance = BotSettings.TargetRange
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local function walkToTarget(targetPosition)
+    local Character = LocalPlayer.Character
+    if not Character or not Character:FindFirstChild("Humanoid") then return end
+    local humanoid = Character.Humanoid
+    local rootPart = Character.HumanoidRootPart
+    
+    local path = PathfindingService:CreatePath({AgentRadius = 2, AgentHeight = 5, AgentCanJump = true})
+    path:ComputeAsync(rootPart.Position, targetPosition)
+    
+    if path.Status == Enum.PathStatus.Success then
+        local waypoints = path:GetWaypoints()
+        for i, waypoint in ipairs(waypoints) do
+            if not BotSettings.Enabled then break end
+            if waypoint.Action == Enum.PathWaypointAction.Jump then humanoid.Jump = true end
+            humanoid:MoveTo(waypoint.Position)
+            humanoid.MoveToFinished:Wait()
+            if i > 1 then break end
+        end
+    else
+        humanoid:MoveTo(targetPosition)
+    end
+end
+
+local function handleBombAndTactics(opponent)
+    local Character = LocalPlayer.Character
+    if not Character or not opponent or not opponent.Character then return end
+    
+    local bomb = workspace:FindFirstChild("BombModel") or Character:FindFirstChild("BombModel")
+    local timerLabel = bomb and (bomb:FindFirstChildOfClass("TextLabel") or bomb:FindFirstChild("TimerLabel"))
+    local currentSeconds = timerLabel and tonumber(timerLabel.Text) or 99
+    
+    local opponentRoot = opponent.Character.HumanoidRootPart
+    local distance = (Character.HumanoidRootPart.Position - opponentRoot.Position).Magnitude
+    
+    if BotSettings.PlayStyle == "Track" then
+        walkToTarget(opponentRoot.Position)
+    elseif BotSettings.PlayStyle == "Orbit" then
+        if distance > BotSettings.OrbitDistance then
+            walkToTarget(opponentRoot.Position)
+        else
+            orbitAngle = orbitAngle + 0.2
+            local offset = Vector3.new(math.sin(orbitAngle), 0, math.cos(orbitAngle)) * BotSettings.OrbitDistance
+            local orbitPosition = opponentRoot.Position + offset
+            walkToTarget(orbitPosition)
+        end
+    end
+    
+    if currentSeconds == BotSettings.BombCatchSeconds then
+        VirtualInputManager:SendKeyPressEvent(Enum.KeyCode.E, true, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyPressEvent(Enum.KeyCode.E, false, game)
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.03)
+        if BotSettings.Enabled then
+            local target = getClosestOpponent()
+            if target then
+                handleBombAndTactics(target)
+            end
+        end
+    end
+end)
+
+print("Time Bomb Script Mapped with 1-12 Dynamic TextBox Customizer!")
