@@ -1,0 +1,127 @@
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+
+local CorrectKey = "MOKA_2026_VIP" 
+
+if CoreGui:FindFirstChild("MokaKeySystem") then
+    CoreGui:FindFirstChild("MokaKeySystem"):Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MokaKeySystem"
+ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 180)
+MainFrame.Position = UDim2.new(0.35, 0, 0.35, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 300, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Title.Text = "Moka VIP - Enter Key"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 240, 0, 40)
+TextBox.Position = UDim2.new(0, 30, 0, 60)
+TextBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TextBox.Text = ""
+TextBox.PlaceholderText = "Paste Key Here..."
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.TextSize = 16
+TextBox.Parent = MainFrame
+
+local CheckButton = Instance.new("TextButton")
+CheckButton.Size = UDim2.new(0, 110, 0, 35)
+CheckButton.Position = UDim2.new(0, 30, 0, 120)
+CheckButton.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
+CheckButton.Text = "Check Key"
+CheckButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CheckButton.TextSize = 16
+CheckButton.Font = Enum.Font.SourceSansBold
+CheckButton.Parent = MainFrame
+
+local CopyKeyButton = Instance.new("TextButton")
+CopyKeyButton.Size = UDim2.new(0, 110, 0, 35)
+CopyKeyButton.Position = UDim2.new(0, 160, 0, 120)
+CopyKeyButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+CopyKeyButton.Text = "Copy Key"
+CopyKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyKeyButton.TextSize = 16
+CopyKeyButton.Font = Enum.Font.SourceSansBold
+CopyKeyButton.Parent = MainFrame
+
+local function ExecuteMainScript()
+    ScreenGui:Destroy()
+    
+    pcall(function()
+        setfflag("TouchEnabled", "False")
+        setfflag("ConsoleEnabled", "True")
+    end)
+
+    local metatbl = getrawmetatable(game)
+    local oldindex = metatbl.__index
+    local oldnamecall = metatbl.__namecall
+    setreadonly(metatbl, false)
+
+    metatbl.__index = newcclosure(function(self, index)
+        if self == UserInputService then
+            if index == "GamepadEnabled" then return true
+            elseif index == "TouchEnabled" then return false
+            elseif index == "KeyboardEnabled" then return false
+            elseif index == "MouseEnabled" then return false
+            end
+        elseif self == GuiService and index == "IsPlatformConsole" then
+            return true
+        elseif index == "GetPlatform" or index == "OsPlatform" then
+            return Enum.Platform.XBoxOne
+        end
+        return oldindex(self, index)
+    end)
+
+    metatbl.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if self == UserInputService and (method == "GetGamepadConnected" or method == "GetConnectedGamepads") then
+            return {string.enum.UserInputType.Gamepad1}
+        end
+        return oldnamecall(self, ...)
+    end)
+
+    setreadonly(metatbl, true)
+
+    pcall(function()
+        game:GetService("GuiService"):SetGamepadCursorEnabled(true)
+        print("Device fully spoofed to Console via Key System!")
+    end)
+end
+
+CopyKeyButton.MouseButton1Click:Connect(function()
+    setclipboard(CorrectKey)
+    CopyKeyButton.Text = "Key Copied!"
+    task.wait(2)
+    CopyKeyButton.Text = "Copy Key"
+end)
+
+CheckButton.MouseButton1Click:Connect(function()
+    if TextBox.Text == CorrectKey then
+        CheckButton.Text = "Correct!"
+        task.wait(1)
+        ExecuteMainScript()
+    else
+        CheckButton.Text = "Invalid Key!"
+        task.wait(2)
+        CheckButton.Text = "Check Key"
+    end
+end)
