@@ -1,0 +1,20 @@
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+
+local metatbl = getrawmetatable(game)
+local oldindex = metatbl.__index
+setreadonly(metatbl, false)
+
+metatbl.__index = newcclosure(function(self, index)
+    if self == UserInputService then
+        if index == "TouchEnabled" then return false
+        elseif index == "KeyboardEnabled" then return true
+        elseif index == "MouseEnabled" then return true
+        end
+    elseif self == GuiService and index == "IsPlatformConsole" then
+        return false
+    end
+    return oldindex(self, index)
+end)
+setreadonly(metatbl, true)
+print("PC Mode Emulation Injected!")
