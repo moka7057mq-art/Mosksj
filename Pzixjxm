@@ -1,0 +1,189 @@
+-- 1️⃣ نظام الوايت ليست للتحقق من الحساب المسموح له (معرف صديقك)
+local Whitelist = {
+    [11651437264] = true 
+}
+
+local player = game.Players.LocalPlayer
+local playerID = player.UserId
+
+if not Whitelist[playerID] then
+    -- 🔴 إذا كان لاعب آخر غير صديقك، يتم طرده بالرسالة الجديدة التي طلبتها
+    player:Kick("عذراً، ليس مسموح لك بتجربة هذا السكربت!")
+    return
+end
+
+-- 🟢 إذا مر التحقق بنجاح، يبدأ السكربت الأساسي الخاص بك بالعمل بالأسفل تلقائياً:
+print("تم التحقق بنجاح! السكربت يعمل الآن.")
+
+local SCRIPT_SOURCE = [=[
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService") 
+
+local ALLOWED_PLACES = {[11379739543] = true, [98752102030179] = true} 
+
+local queueOnTeleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) 
+
+local function hwidFromGetHWID()
+  return type(getHWID) == "function" and getHWID()
+end
+local function hwidFromGethwid()
+  return type(gethwid) == "function" and gethwid()
+end
+local function hwidFromSyn()
+  return (syn and type(syn.gethwid) == "function") and syn.gethwid()
+end
+local function hwidFromGet_hwid()
+  return type(get_hwid) == "function" and get_hwid()
+end 
+
+local function getHwid()
+  for _, fn in ipairs({hwidFromGethwid, hwidFromGet_hwid, hwidFromGetHWID, hwidFromSyn}) do
+    local ok, value = pcall(fn)
+    if ok and type(value) == "string" then
+      local clean = value:gsub("%s+", "")
+      if #clean >= 8 and #clean <= 256 then
+        return clean
+      end
+    end
+  end
+  return nil
+end 
+
+-- دالة للحصول على اسم ملف التخزين الخاص بهذا السيرفر حصرياً
+local function getServerCacheFileName()
+  local jobId = game.JobId
+  if not jobId or jobId == "" then
+    jobId = "default_server"
+  else
+    -- تنظيف الـ JobId ليكون صالحاً كاسم ملف
+    jobId = jobId:gsub("[^%w_%-]", "_")
+  end
+  return "sys_server_cfg_" .. jobId .. ".bin"
+end 
+
+local function setTargetDevice(device)
+  local fileName = getServerCacheFileName()
+  if writefile then
+    pcall(writefile, fileName, device)
+  end
+  _G.TargetDevice = device
+end 
+
+local function getTargetDevice()
+  if not _G.TargetDevice then
+    local fileName = getServerCacheFileName()
+    if readfile and isfile and isfile(fileName) then
+      pcall(function()
+        _G.TargetDevice = readfile(fileName)
+      end)
+    end
+    -- إذا كان هذا السيرفر جديد وليس له ملف محفوظ، يخليه "Mobile" افتراضياً
+    if not _G.TargetDevice or _G.TargetDevice == "" then
+      _G.TargetDevice = "Mobile"
+      setTargetDevice("Mobile")
+    end
+  end
+  return _G.TargetDevice
+end 
+
+local function nativeFunctionsIntact()
+  if not debug or not debug.getinfo then
+    return true
+  end
+  local fns = {rawset, rawget, pcall}
+  if getgc then
+    table.insert(fns, getgc)
+  end
+  for _, fn in ipairs(fns) do
+    local info = debug.getinfo(fn)
+    if not info or info.what ~= "C" or info.source ~= "=[C]" then
+      return false
+    end
+  end
+  return true
+end 
+
+local function randomName()
+  local text = ""
+  for _ = 1, math.random(10, 16) do
+    text = text .. string.char(math.random(97, 122))
+  end
+  return text
+end 
+
+local function applyDeviceUiFixes()
+  local localPlayer = Players.LocalPlayer
+  if not localPlayer then return end
+  local playerGui = localPlayer:FindFirstChild("PlayerGui") or localPlayer:WaitForChild("PlayerGui", 10)
+  if not playerGui then return end
+  local screen = playerGui:FindFirstChild("Screen") or playerGui:WaitForChild("Screen", 10)
+  if not screen then return end
+  screen.Enabled = true 
+
+  local consoleButton = screen:FindFirstChild("ConsoleButton", true)
+  if consoleButton and consoleButton:IsA("GuiObject") then
+    consoleButton.Visible = false
+  end 
+
+  local shiftLockArea = screen:FindFirstChild("ShiftLockArea") or screen:WaitForChild("ShiftLockArea", 10)
+  if not (shiftLockArea and shiftLockArea:IsA("GuiObject")) then return end
+  shiftLockArea.Visible = true 
+
+  local toggle = shiftLockArea:FindFirstChild("Toggle") or shiftLockArea:WaitForChild("Toggle", 10)
+  local cursor = screen:FindFirstChild("MouseLockedCursor") or screen:WaitForChild("MouseLockedCursor", 10)
+  if not (toggle and toggle:IsA("GuiObject")) then return end
+  toggle.Visible = true
+  if not (cursor and cursor:IsA("GuiObject")) then return end 
+
+  local function updateCursor()
+    local active = toggle.Active or toggle.Selected
+    if not active then
+      active = toggle:IsA("ImageButton") and toggle.ImageRectOffset.X > 0
+    end
+    cursor.Visible = active and true or false
+  end
+  updateCursor() 
+
+  if not toggle:GetAttribute("CursorBound") then
+    toggle:SetAttribute("CursorBound", true)
+    toggle:GetPropertyChangedSignal("Active"):Connect(updateCursor)
+    toggle:GetPropertyChangedSignal("Selected"):Connect(updateCursor)
+    if toggle:IsA("GuiButton") then
+      toggle.MouseButton1Click:Connect(function()
+        task.wait(0.05)
+        updateCursor()
+      end)
+    end
+  end
+end 
+
+local function spoofDeviceInGc(device)
+  if not device or not getgc then
+    return 0, 0
+  end
+  local ok, objects = pcall(getgc, true)
+  if not ok or not objects then
+    return 0, 0
+  end 
+
+  local patched, scanned = 0, 0
+  for _, obj in ipairs(objects) do
+    scanned = scanned + 1
+    if scanned > 150000 then
+      break
+    end
+    if type(obj) == "table" then
+      local okDevice, current = pcall(rawget, obj, "Device")
+      if okDevice and (current == "Mobile" or current == "PC") then
+        pcall(rawset, obj, "Device", device)
+        patched = patched + 1
+      end
+    end
+  end
+  return patched, scanned
+end
+]=]
+
+loadstring(SCRIPT_SOURCE)()
