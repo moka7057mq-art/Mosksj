@@ -1,0 +1,146 @@
+-- PRIME HUB (Compact Edition)
+
+local PRIME_HUB_BG = "rbxassetid://18314616360"
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+
+if CoreGui:FindFirstChild("Prime Hub Assist GUI") then
+    CoreGui["Prime Hub Assist GUI"]:Destroy()
+end
+
+local LocalPlayer = Players.LocalPlayer
+local RootPart = LocalPlayer.Character and LocalPlayer.Character:WaitForChild("HumanoidRootPart", 5)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    RootPart = char:WaitForChild("HumanoidRootPart", 5)
+end)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Prime Hub Assist GUI"
+gui.ResetOnSpawn = false
+
+-- دعم المشغلات المجهزة (Executors)
+if syn and syn.protect_gui then
+    syn.protect_gui(gui)
+    gui.Parent = CoreGui
+elseif gethui then
+    gui.Parent = gethui()
+else
+    gui.Parent = CoreGui
+end
+
+local f = Instance.new("Frame", gui)
+f.Size = UDim2.new(0, 190, 0, 150)
+f.Position = UDim2.new(0.5, -95, 0.4, -75)
+f.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+f.Active, f.Draggable = true, true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 12)
+
+local stroke = Instance.new("UIStroke", f)
+stroke.Color, stroke.Thickness = Color3.fromRGB(155, 89, 182), 2
+
+local bg = Instance.new("ImageLabel", f)
+bg.Size, bg.BackgroundTransparency, bg.Image, bg.ScaleType = UDim2.new(1,0,1,0), 1, PRIME_HUB_BG, Enum.ScaleType.Crop
+Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 12)
+
+local function lbl(text, pos, size, color, sz)
+    local l = Instance.new("TextLabel", f)
+    l.Size, l.Position, l.Text, l.TextColor3, l.TextSize = size, pos, text, color, sz
+    l.BackgroundTransparency, l.Font = 1, Enum.Font.GothamBold
+    return l
+end
+
+lbl("PRIME HUB", UDim2.new(0,0,0,8), UDim2.new(1,0,0,20), Color3.fromRGB(46, 204, 113), 15)
+local status = lbl("Status: OFF", UDim2.new(0,0,0,126), UDim2.new(1,0,0,18), Color3.fromRGB(170, 170, 170), 10)
+
+local isSpam, speed, dur = false, 25, 5
+
+local btn = Instance.new("TextButton", f)
+btn.Size, btn.Position, btn.Text, btn.BackgroundColor3 = UDim2.new(0.66, 0, 0, 30), UDim2.new(0.06, 0, 0, 45), "trampling: OFF", Color3.fromRGB(30, 30, 35)
+btn.TextColor3, btn.TextSize, btn.Font = Color3.fromRGB(255, 255, 255), 11, Enum.Font.GothamSemibold
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+local setBtn = Instance.new("TextButton", f)
+setBtn.Size, setBtn.Position, setBtn.Text, setBtn.BackgroundColor3 = UDim2.new(0, 28, 0, 30), UDim2.new(0.75, 0, 0, 45), "⚙️", Color3.fromRGB(45, 45, 60)
+setBtn.TextColor3, setBtn.TextSize = Color3.fromRGB(255, 255, 255), 13
+Instance.new("UICorner", setBtn).CornerRadius = UDim.new(0, 6)
+
+local menu = Instance.new("Frame", f)
+menu.Size, menu.Position, menu.BackgroundColor3, menu.Visible = UDim2.new(0.88, 0, 0, 30), UDim2.new(0.06, 0, 0, 85), Color3.fromRGB(20, 20, 30), false
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 6)
+
+local function mkB(txt, col, x)
+    local b = Instance.new("TextButton", menu)
+    b.Size, b.Position, b.Text, b.BackgroundColor3 = UDim2.new(0, 30, 0, 22), UDim2.new(0, x, 0.5, -11), txt, col
+    b.TextColor3, b.TextSize, b.Font = Color3.fromRGB(255, 255, 255), 11, Enum.Font.GothamBold
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+    return b
+end
+
+local bP = mkB("+", Color3.fromRGB(0, 150, 255), 6)
+local bM = mkB("-", Color3.fromRGB(230, 140, 30), 40)
+local bS = mkB("🔍", Color3.fromRGB(100, 50, 200), 74)
+local bH = mkB("👁️", Color3.fromRGB(220, 50, 50), 108)
+
+local function stop()
+    isSpam = false
+    if RootPart then RootPart.Velocity = Vector3.zero end
+    btn.BackgroundColor3, btn.Text, status.Text = Color3.fromRGB(30, 30, 35), "trampling: OFF", "Status: OFF"
+end
+
+local function start()
+    if isSpam then return end
+    isSpam = true
+    btn.BackgroundColor3, btn.Text, status.Text = Color3.fromRGB(46, 204, 113), "trampling: ON", "Speed: " .. speed .. " ✈️"
+    task.spawn(function()
+        local t = tick()
+        while isSpam and (tick() - t < dur) do
+            if RootPart then
+                local l = RootPart.CFrame.LookVector
+                RootPart.Velocity = l * speed; task.wait(0.05)
+                if not isSpam then break end
+                RootPart.Velocity = -l * speed; task.wait(0.05)
+            else break end
+        end
+        stop()
+    end)
+end
+
+btn.MouseButton1Click:Connect(function() if isSpam then stop() else start() end end)
+setBtn.MouseButton1Click:Connect(function() menu.Visible = not menu.Visible end)
+
+bP.MouseButton1Click:Connect(function()
+    speed = speed + 5
+    if isSpam then status.Text = "Speed: " .. speed .. " ✈️" end
+end)
+
+bM.MouseButton1Click:Connect(function()
+    if speed > 5 then speed = speed - 5 end
+    if isSpam then status.Text = "Speed: " .. speed .. " ✈️" end
+end)
+
+local small = false
+bS.MouseButton1Click:Connect(function()
+    small = not small
+    if small then
+        f.Size = UDim2.new(0, 150, 0, 120)
+        btn.Size, setBtn.Size = UDim2.new(0.62, 0, 0, 26), UDim2.new(0, 26, 0, 26)
+        setBtn.Position, btn.Position = UDim2.new(0.72, 0, 0, 40), UDim2.new(0.06, 0, 0, 40)
+        status.Position = UDim2.new(0, 0, 0, 95)
+        menu.Position, menu.Size = UDim2.new(0.06, 0, 0, 70), UDim2.new(0.88, 0, 0, 24)
+    else
+        f.Size = UDim2.new(0, 190, 0, 150)
+        btn.Size, setBtn.Size = UDim2.new(0.66, 0, 0, 30), UDim2.new(0, 28, 0, 30)
+        setBtn.Position, btn.Position = UDim2.new(0.75, 0, 0, 45), UDim2.new(0.06, 0, 0, 45)
+        status.Position = UDim2.new(0, 0, 0, 126)
+        menu.Position, menu.Size = UDim2.new(0.06, 0, 0, 85), UDim2.new(0.88, 0, 0, 30)
+    end
+end)
+
+local hidden = false
+bH.MouseButton1Click:Connect(function()
+    hidden = not hidden
+    bg.Visible = not hidden
+    f.BackgroundTransparency = hidden and 1 or 0
+    stroke.Transparency = hidden and 1 or 0
+end)
